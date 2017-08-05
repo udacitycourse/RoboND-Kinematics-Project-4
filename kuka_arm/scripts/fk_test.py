@@ -89,12 +89,12 @@ def calculate_fk():
 
 	# Create individual transformation matrices
 
-        T0_2 = simplify(T0_1 * T1_2)
-        T0_3 = simplify(T0_2 * T2_3)
-        T0_4 = simplify(T0_3 * T3_4)
-        T0_5 = simplify(T0_4 * T4_5)
-        T0_6 = simplify(T0_5 * T5_6)
-        T0_G = simplify(T0_6 * T6_G)
+        T0_2 = T0_1 * T1_2
+        T0_3 = T0_2 * T2_3
+        T0_4 = T0_3 * T3_4
+        T0_5 = T0_4 * T4_5
+        T0_6 = T0_5 * T5_6
+        T0_G = T0_6 * T6_G
 
         # Rotate gripper reference frame to coincide with global reference frame
 
@@ -120,7 +120,9 @@ def calculate_fk():
         # print("T0_6 = ", T0_6.evalf(subs=q_subs))
         print("T0_G = ", T0_G.evalf(subs=q_subs))
 
-        T_total = simplify(T0_6 * R_corr)
+        T_total = simplify(T0_G * R_corr)
+
+        print("T_total = ", T_total.evalf(subs=q_subs))
 
 	# Extract rotation matrices from the transformation matrices
 	#
