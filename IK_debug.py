@@ -73,9 +73,9 @@ def test_code(test_case):
          alpha1: -pi/2, a1: .35,   d1: .75,   q1: q1,
          alpha2: 0,     a2: 1.25,  d2: 0,     q2: q2-pi/2,
          alpha3: -pi/2, a3: -.054, d3: 0,     q3: q3,
-         alpha4: pi/2,  a4: 0,     d4: 1.5,   q4: q4,
-         alpha5: -pi/2, a5: 0,     d5: 0,     q5: q5,
-         alpha6: 0,     a6: 0,     d6: 0,     q6: q6,
+         alpha4: pi/2,  a4: 0,     d4: 1.5,   #q4: q4,
+         alpha5: -pi/2, a5: 0,     d5: 0,     #q5: q5,
+         alpha6: 0,     a6: 0,     d6: 0,     #q6: q6,
          # alpha7: N/A    a7: N/A
          d7: .303,  q7: 0}
 
@@ -166,7 +166,7 @@ def test_code(test_case):
     
     R0_1 = T0_1[0:3,0:3]
     R0_2 = T0_2[0:3,0:3]
-    R0_3 = T0_3[0:3,0:3]
+    R0_3 = T0_3[0:3, 0:3]
     R0_4 = T0_4[0:3,0:3]
     R0_5 = T0_5[0:3,0:3]
     R0_6 = T0_6[0:3,0:3]
@@ -174,7 +174,6 @@ def test_code(test_case):
     
     
     ## Insert IK code here!
-    x = 0
     # Extract end-effector position and orientation from request
     # px,py,pz = end-effector position
     # roll, pitch, yaw = end-effector orientation
@@ -196,6 +195,7 @@ def test_code(test_case):
     R_pitch = Matrix([[cos(pitch), 0, sin(pitch)],
                       [0, 1, 0],
                       [-sin(pitch), 0, cos(pitch)]])
+    
     R_roll = Matrix([[1, 0, 0],
                      [0, cos(roll), -sin(roll)],
                      [0, sin(roll), cos(roll)]])
@@ -204,14 +204,22 @@ def test_code(test_case):
                      [0, 1, 0],
                      [-sin(pi/2), 0, cos(pi/2)]])
 
+    R_y_neg90 = Matrix([[cos(-pi/2), 0, sin(-pi/2)],
+                        [0, 1, 0],
+                        [-sin(-pi/2), 0, cos(-pi/2)]])
+
+
     R_z_180 = Matrix([[cos(pi), -sin(pi), 0],
                       [sin(pi), cos(pi),  0],
                       [0,       0,        1]])
 
     
     R_URDF_to_DH = R_y_90 * R_z_180
-    
-    Rrpy = R_yaw * R_pitch * R_roll * R_URDF_to_DH
+    # R_URDF_to_DH = R_z_180 * R_y_neg90
+
+    # the evalf call here seems to solve some mysterious numerical issue
+    # after including it, eef is spot on
+    Rrpy = (R_yaw * R_pitch * R_roll* R_URDF_to_DH).evalf()
     
     nx = Rrpy[0,2]
     ny = Rrpy[1,2]
@@ -231,13 +239,6 @@ def test_code(test_case):
     #
     #
     ###
-
-    theta1 = 0
-    theta2 = 0
-    theta3 = 0
-    theta4 = 0
-    theta5 = 0
-    theta6 = 0
 
     # triangle sides
     A = a2
@@ -259,15 +260,17 @@ def test_code(test_case):
     
     theta3 = (pi/2 - beta - atan2(abs(a3), d4)).subs(s)
     
-    R0_3_inv = R0_3.inv("LU")
-    R3_6 = R0_3_inv * Rrpy
-    # R3_6 = R3_6.subs(s)
-    R3_6 = R3_6.subs({q1: theta1, q2: theta2, q3: theta3})
-    print(R3_6)
-    
-    theta5 = atan2(-R3_6[2,0], sqrt(R3_6[0,0]**2 + R3_6[1,0]**2))
-    theta4 = atan2(R3_6[2,1], R3_6[2,2])
-    theta6 = atan2(R3_6[1,0], R3_6[0,0])
+    R0_3_inv = Transpose(R0_3.evalf(subs={q1: theta1, q2: theta2, q3: theta3}))
+    R3_6 = (R0_3_inv * Rrpy).evalf()
+
+    # pprint(simplify(T3_4[0:3,0:3] * T4_5[0:3,0:3] * T5_6[0:3,0:3]))
+
+    theta4 = atan2(R3_6[2,2], -R3_6[0,2])
+    theta5 = atan2(sqrt(R3_6[1,0]**2 + R3_6[1,1]**2), R3_6[1,2])
+    theta6 = atan2(-R3_6[1,1], R3_6[1,0])
+
+    print("Calculated joint angles: ", [theta4, theta5, theta6])
+    print("Expected joint angles: ", test_case[2][3:])
 
     ## 
     ########################################################################################
@@ -279,14 +282,17 @@ def test_code(test_case):
     ## (OPTIONAL) YOUR CODE HERE!
 
     q_subs = {q1: theta1, q2: theta2, q3: theta3, q4: theta4, q5: theta5, q6: theta6}
-    T0_G = T0_G.subs(q_subs)
+    T0_G = T0_G.evalf(subs=q_subs)
+    # print(T0_5)
+
 
     ## End your code input for forward kinematics here!
     ########################################################################################
 
     ## For error analysis please set the following variables of your WC location and EE location in the format of [x,y,z]
     your_wc = [wx,wy,wz] # <--- Load your calculated WC values in this array
-    your_ee = [T0_G[0,3], T0_G[1,3], T0_G[2,3]] # <--- Load your calculated end effector value from your forward kinematics
+    your_ee = T0_G[0:3, 3] # <--- Load your calculated end effector value from your forward kinematics
+    print(your_ee)
     ########################################################################################
 
     ## Error analysis
@@ -331,8 +337,6 @@ def test_code(test_case):
         print ("End effector error for y position is: %04.8f" % ee_y_e)
         print ("End effector error for z position is: %04.8f" % ee_z_e)
         print ("Overall end effector offset is: %04.8f units \n" % ee_offset)
-
-
 
 
 if __name__ == "__main__":

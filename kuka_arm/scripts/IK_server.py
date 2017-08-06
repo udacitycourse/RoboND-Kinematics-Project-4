@@ -177,9 +177,9 @@ def handle_calculate_IK(req):
             
             
             R_URDF_to_DH = R_y_90 * R_z_180
-            
-            Rrpy = R_yaw * R_pitch * R_roll * R_URDF_to_DH
-            
+
+            Rrpy = (R_yaw * R_pitch * R_roll* R_URDF_to_DH).evalf()
+    
             nx = Rrpy[0,2]
             ny = Rrpy[1,2]
             nz = Rrpy[2,2]
@@ -198,13 +198,6 @@ def handle_calculate_IK(req):
             #
             #
             ###
-            
-            theta1 = 0
-            theta2 = 0
-            theta3 = 0
-            theta4 = 0
-            theta5 = 0
-            theta6 = 0
             
             # triangle sides
             A = a2
@@ -226,14 +219,15 @@ def handle_calculate_IK(req):
             
             theta3 = (pi/2 - beta - atan2(abs(a3), d4)).subs(s)
             
-            R0_3_inv = R0_3.inv("LU")
-            R3_6 = R0_3_inv * Rrpy
-            # R3_6 = R3_6.subs(s)
-            R3_6 = R3_6.subs({q1: theta1, q2: theta2, q3: theta3})
+            R0_3_inv = Transpose(R0_3.evalf(subs={q1: theta1, q2: theta2, q3: theta3}))
+            R3_6 = (R0_3_inv * Rrpy).evalf()
+
+            # print symbolic representation of R3_6, derive the rotation order from that
+            # pprint(simplify(T3_4[0:3,0:3] * T4_5[0:3,0:3] * T5_6[0:3,0:3]))
             
-            theta5 = atan2(-R3_6[2,0], sqrt(R3_6[0,0]**2 + R3_6[1,0]**2))
-            theta4 = atan2(R3_6[2,1], R3_6[2,2])
-            theta6 = atan2(R3_6[1,0], R3_6[0,0])
+            theta4 = atan2(R3_6[2,2], -R3_6[0,2])
+            theta5 = atan2(sqrt(R3_6[1,0]**2 + R3_6[1,1]**2), R3_6[1,2])
+            theta6 = atan2(-R3_6[1,1], R3_6[1,0])
 	    
             # Populate response for the IK request
             # In the next line replace theta1,theta2...,theta6 by your joint angle variables
