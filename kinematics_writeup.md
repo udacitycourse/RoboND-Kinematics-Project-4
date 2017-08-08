@@ -14,6 +14,7 @@
 [image8]: ./misc_images/theta_2_3.png
 [image9]: ./misc_images/theta_4_5_6.png
 [image10]: ./misc_images/position_diagram.jpg
+[image11]: ./kuka_arm/scripts/effector_error_plot.png
 
 
 ### Kinematic Analysis
@@ -83,6 +84,10 @@ First we instantiate the DH parameter table as a native dictionary and symbolica
 
 The next step is to extract the end effector orientation and position from incoming simulation data. Orientation data is provided in quaternions from the simulator, so we must use the `euler_from_quaternion` method from the `tf.transformations` package to get the data into a form that is useful for us. Next we create rotation matrices that correspond to <b>yaw</b>, <b>pitch</b>, and <b>roll</b> values so obtained. From this, we can calculate the total rotation from the base frame to the end effector frame, but not before rotating the incoming rotation (which is relative to the base reference frame) into coincidence with the end effector frame. Now that we have a total rotation from base frame to end effector frame, we can calculate the position of the wrist center and proceed to define the algebraic operations outlined above to arrive at the desired joint angles, which are then used to populate the response to the simulator in the form of `JointTrajectoryPoint` objects. Once all the incoming end effector poses (which correspond to the desired trajectory of the Kuka Arm) have been successfully calculated, the list of `JointTrajectoryPoint` objects is returned in the form of a `CalculateIKResponse` object.
 
+My results using this method were quite good. My inverse kinematics calculations consistently carry the Kuka Arm along the trajectory laid out by the simulator's path planning algorithm. `IK_Server.py` is configured to save off a line plot of end effector position errors for each request from the simulator. I've included an example below, and the plot output by the `CalculateIK` service can be found in `kuka_arm/scripts/effector_error_plot.png`.
 
+![alt text][image11]
+
+Admittedly, this plot is a little difficult to read, but the upshot is that my error for calculated end effector positions are consistently on the order of 10<sup>-15</sup>. Given the common numerical issues associated with floating point arithmetic, it seems unlikely that these results could be improved in any meaningful way.
 
 			
